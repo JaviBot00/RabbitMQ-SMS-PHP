@@ -1,0 +1,126 @@
+services:
+
+  # ─── RABBITMQ ─────────────────────────────────────────────────────────────
+  # Imagen custom para activar el plugin delayed message exchange.
+  rabbitmq:
+    build: ./rabbitmq
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"    # puerto AMQP
+      - "15672:15672"  # panel web de administración (http://localhost:15672)
+    networks:
+      - backend
+      - red-compartida
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MYSQL ────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE}
+      MYSQL_USER:          ${MYSQL_USER}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── INTERMEDIARIO ────────────────────────────────────────────────────────
+  # Escucha sms.entrada y enruta cada mensaje a sms.directo o sms.delayed.
+  intermediario:
+    build:
+      context: .
+      dockerfile: intermediario/Dockerfile
+    container_name: intermediario
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # ─── CONSUMER ─────────────────────────────────────────────────────────────
+  # Escucha sms.directo, llama al proveedor SMS y actualiza la BD.
+  consumer:
+    build:
+      context: .
+      dockerfile: consumer/Dockerfile
+    container_name: consumer
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # ─── REINTENTADOR ─────────────────────────────────────────────────────────
+  # Ciclo periódico que recupera mensajes no enviados y los reencola.
+  reintentador:
+    build:
+      context: .
+      dockerfile: reintentador/Dockerfile
+    container_name: reintentador
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # ─── EMISOR ───────────────────────────────────────────────────────────────
+  # Solo para pruebas: simula eventos entrantes en bucle.
+  # En producción este contenedor no existe.
+  emisor:
+    build:
+      context: .
+      dockerfile: emisor/Dockerfile
+    container_name: emisor
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+# ─── VOLÚMENES ────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+
+# ─── REDES ────────────────────────────────────────────────────────────────────
+networks:
+  backend:
+    name: proyecto-sms_backend
+
+  red-compartida:
+    # red externa compartida con otros proyectos (ej: nginx-proxy-manager)
+    # crearla manualmente una sola vez: docker network create red-compartida
+    external: true

@@ -1,0 +1,34 @@
+{
+    "name": "rabbitmq-sms/emisor",
+    "description": "Emisor de mensajes SMS: inserta en BD y publica IDs en la cola de entrada.",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "php-amqplib/php-amqplib": "^3.7",
+        "psr/log": "^3.0",
+        "monolog/monolog": "^3.0",
+        "rabbitmq-sms/shared": "@dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "RabbitmqSms\\Emisor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RabbitmqSms\\Emisor\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
+    "config": {
+        "optimize-autoloader": true
+    }
+}

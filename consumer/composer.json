@@ -1,0 +1,34 @@
+{
+    "name": "rabbitmq-sms/consumer",
+    "description": "Consumer SMS: recibe mensajes listos para enviar, llama al proveedor y actualiza la BD.",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "php-amqplib/php-amqplib": "^3.7",
+        "psr/log": "^3.0",
+        "monolog/monolog": "^3.0",
+        "rabbitmq-sms/shared": "@dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "RabbitmqSms\\Consumer\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RabbitmqSms\\Consumer\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared"
+        }
+    ],
+    "config": {
+        "optimize-autoloader": true
+    }
+}

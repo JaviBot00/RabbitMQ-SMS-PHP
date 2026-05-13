@@ -1,0 +1,13 @@
+# Dockerfile base compartido por todos los actores PHP.
+# Cada actor lo extiende copiando su propio código y composer.json.
+#
+# PHP 8.3 CLI sobre Alpine para imagen ligera.
+# Extensiones: pdo_mysql (BD), sockets (php-amqplib).
+
+FROM php:8.3-cli-alpine
+
+# extensiones necesarias
+RUN docker-php-ext-install pdo pdo_mysql sockets
+
+# Composer (gestor de dependencias PHP)
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
