@@ -118,7 +118,7 @@ volumes:
 # ─── REDES ────────────────────────────────────────────────────────────────────
 networks:
   backend:
-    name: proyecto-sms_backend
+    driver: bridge
 
   red-compartida:
     # red externa compartida con otros proyectos (ej: nginx-proxy-manager)
