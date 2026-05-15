@@ -60,10 +60,10 @@ while (true) {
 
         $emisor->declararCola();
 
-        // al arrancar, procesar cualquier pendiente que quedara de antes
-        if ($ronda === 1) {
-            $emisor->procesarPendientes();
-        }
+        // // al arrancar, procesar cualquier pendiente que quedara de antes
+        // if ($ronda === 1) {
+        //     $emisor->procesarPendientes();
+        // }
 
         $logger->info(sprintf('── Ronda %d ─────────────────────────────────', $ronda));
 
