@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMS LOAD TESTER</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;600;800&display=swap');
+
+    :root {
+      --bg:        #0b0e14;
+      --surface:   #111620;
+      --border:    #1e2a3a;
+      --accent:    #00e5ff;
+      --accent2:   #ff6b35;
+      --warn:      #ffcc00;
+      --ok:        #39ff89;
+      --muted:     #3a4a5c;
+      --text:      #c8d8e8;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow-x: hidden;
+    }
+
+    /* scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--surface);
+    }
+
+    .logo-block {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
+
+    .logo-block .label {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(0,229,255,0.4);
+    }
+
+    .logo-block .sub {
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 11px;
+      letter-spacing: 6px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .status-pill {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── MAIN GRID ── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── PANEL / CARD ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.6;
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-header .icon {
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .panel-body {
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    label span.required { color: var(--accent2); margin-left: 4px; }
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      appearance: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0,229,255,0.08), inset 0 0 12px rgba(0,229,255,0.03);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.6;
+    }
+
+    /* range slider */
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: -6px;
+      box-shadow: 0 0 8px rgba(0,229,255,0.6);
+      cursor: pointer;
+    }
+
+    .range-val {
+      min-width: 48px;
+      text-align: right;
+      font-size: 20px;
+      font-family: var(--sans);
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    /* delay slider color */
+    #delay-val { color: var(--warn); }
+    input[type="range"].warn::-webkit-slider-thumb {
+      background: var(--warn);
+      box-shadow: 0 0 8px rgba(255,204,0,0.6);
+    }
+
+    /* toggle row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    .toggle-label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .toggle-label strong {
+      font-size: 13px;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    .toggle-label small {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* custom checkbox as toggle */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      cursor: pointer;
+      border-radius: 12px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .toggle input:checked + .toggle-slider { background: rgba(255,107,53,0.25); border: 1px solid var(--accent2); }
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(255,107,53,0.7);
+    }
+
+    /* users list */
+    .user-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .user-chip input[type="checkbox"] { display: none; }
+
+    .user-chip .chip-label {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      background: var(--bg);
+      transition: all 0.15s;
+    }
+
+    .user-chip input:checked + .chip-label {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,229,255,0.06);
+      box-shadow: 0 0 8px rgba(0,229,255,0.1);
+    }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      font-family: var(--sans);
+      font-weight: 600;
+      letter-spacing: 3px;
+      font-size: 13px;
+      border: none;
+      cursor: pointer;
+      padding: 14px 24px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-fire {
+      flex: 1;
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-fire:hover { background: #33eeff; box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+    .btn-fire:active { transform: scale(0.98); }
+    .btn-fire:disabled { background: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 14px 18px;
+    }
+
+    .btn-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* progress bar */
+    .progress-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-wrap.visible { display: flex; }
+
+    .progress-bar-bg {
+      height: 4px;
+      background: var(--border);
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s;
+      box-shadow: 0 0 8px rgba(0,229,255,0.6);
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    /* ── LOG PANEL ── */
+    .log-panel {
+      grid-column: 1 / -1;
+    }
+
+    .log-body {
+      padding: 0;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .log-body::-webkit-scrollbar { width: 4px; }
+    .log-body::-webkit-scrollbar-track { background: var(--bg); }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 160px 80px 1fr;
+      gap: 0;
+      padding: 8px 20px;
+      border-bottom: 1px solid rgba(30,42,58,0.5);
+      font-size: 12px;
+      animation: fadeIn 0.2s ease;
+      align-items: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-line:hover { background: rgba(0,229,255,0.02); }
+
+    .log-time { color: var(--muted); }
+    .log-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      justify-self: start;
+    }
+    .badge-ok   { background: rgba(57,255,137,0.1); color: var(--ok); border: 1px solid rgba(57,255,137,0.2); }
+    .badge-err  { background: rgba(255,50,50,0.1); color: #ff5050; border: 1px solid rgba(255,50,50,0.2); }
+    .badge-warn { background: rgba(255,204,0,0.1); color: var(--warn); border: 1px solid rgba(255,204,0,0.2); }
+    .badge-info { background: rgba(0,229,255,0.08); color: var(--accent); border: 1px solid rgba(0,229,255,0.15); }
+    .log-msg { color: var(--text); word-break: break-all; }
+
+    .log-empty {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 3px;
+    }
+
+    /* stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+      grid-column: 1 / -1;
+    }
+
+    .stat-cell {
+      background: var(--surface);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-val {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 32px;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .stat-val.err { color: #ff5050; }
+    .stat-val.warn { color: var(--warn); }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 32px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* responsive */
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .log-line { grid-template-columns: 120px 70px 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-block">
+    <div class="label">SMS LOAD TESTER</div>
+    <div class="sub">Emisor · Panel de pruebas</div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span id="endpoint-display">api.php</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── CONFIG PANEL ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="icon">⚙</span> CONFIGURACIÓN DE CARGA
+    </div>
+    <div class="panel-body">
+
+      <div class="field">
+        <label>Endpoint API <span class="required">*</span></label>
+        <input type="text" id="endpoint" value="api.php" placeholder="http://localhost/api.php" />
+      </div>
+
+      <div class="field">
+        <label>Contenido del mensaje</label>
+        <textarea id="contenido" rows="2">Tienes una tarea pendiente</textarea>
+      </div>
+
+      <div class="field">
+        <label>Usuarios destino (selecciona uno o más)</label>
+        <div class="user-grid" id="user-grid">
+          <!-- chips generados por JS -->
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <input type="text" id="custom-user" placeholder="Añadir usuario_id manual..." style="flex:1;" />
+          <button class="btn-clear" style="padding:10px 14px; font-size:11px;" onclick="addCustomUser()">+ ADD</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Cantidad de mensajes por usuario</label>
+        <div class="range-wrap">
+          <input type="range" id="cantidad" min="1" max="200" value="10"
+                 oninput="document.getElementById('cantidad-val').textContent = this.value" />
+          <div class="range-val" id="cantidad-val">10</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Delay entre envíos (ms)</label>
+        <div class="range-wrap">
+          <input type="range" id="delay" min="0" max="2000" step="50" value="200" class="warn"
+                 oninput="document.getElementById('delay-val').textContent = this.value + 'ms'" />
+          <div class="range-val" id="delay-val">200ms</div>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <strong>URGENTE</strong>
+          <small>Activa prioridad alta en la cola</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="es-urgente" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-info">
+          <span id="progress-label">Enviando...</span>
+          <span id="progress-pct">0%</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-fire" id="btn-fire" onclick="iniciarCarga()">▶ INICIAR CARGA</button>
+        <button class="btn-clear" onclick="detener()" id="btn-stop" style="display:none;">■ STOP</button>
+        <button class="btn-clear" onclick="limpiarLog()">✕ LOG</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STATS PANEL ── -->
+  <div class="panel" style="display:flex; flex-direction:column; gap:0;">
+    <div class="panel-header">
+      <span class="icon">◈</span> ESTADÍSTICAS DE SESIÓN
+    </div>
+    <div class="panel-body" style="gap:0; padding:0;">
+      <div class="stats-row" style="grid-column:1; display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); flex:1;">
+        <div class="stat-cell">
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-label">Total enviados</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" id="stat-ok">0</div>
+          <div class="stat-label">Éxitos</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val err" id="stat-err">0</div>
+          <div class="stat-label">Errores</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val warn" id="stat-rate">—</div>
+          <div class="stat-label">msg/s actual</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-header" style="margin-top:1px;">
+      <span class="icon">◎</span> MODO RÁFAGA
+    </div>
+    <div class="panel-body" style="gap:16px;">
+      <p style="font-size:11px; color:var(--muted); line-height:1.7; letter-spacing:1px;">
+        Envía N mensajes concurrentes de una sola vez, sin delay entre ellos.<br>
+        Útil para estresar el broker con picos de carga.
+      </p>
+      <div class="field">
+        <label>Tamaño de ráfaga</label>
+        <div class="range-wrap">
+          <input type="range" id="rafaga-n" min="1" max="500" value="50"
+                 oninput="document.getElementById('rafaga-val').textContent = this.value" />
+          <div class="range-val" id="rafaga-val">50</div>
+        </div>
+      </div>
+      <button class="btn-fire" onclick="modoRafaga()" id="btn-rafaga">⚡ LANZAR RÁFAGA</button>
+    </div>
+  </div>
+
+  <!-- ── LOG ── -->
+  <div class="panel log-panel">
+    <div class="panel-header" style="justify-content:space-between;">
+      <span><span class="icon">▸</span> LOG DE ACTIVIDAD</span>
+      <span id="log-count" style="font-size:10px; color:var(--muted);">0 eventos</span>
+    </div>
+    <div class="log-body" id="log-body">
+      <div class="log-empty" id="log-empty">Sin actividad. Configura y lanza una carga.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>SMS LOAD TESTER · RabbitmqSms\Emisor</span>
+  <span id="footer-time">—</span>
+</footer>
+
+<script>
+// ── USUARIOS POR DEFECTO ─────────────────────────────────────────────
+const DEFAULT_USERS = [
+  'user_normal_01',
+  'user_normal_02',
+  'user_especial_01',
+  'user_especial_02',
+];
+
+let customUsers = [];
+let running     = false;
+let stopFlag    = false;
+
+let stats = { total: 0, ok: 0, err: 0, startTs: null };
+
+// ── INIT ─────────────────────────────────────────────────────────────
+(function init() {
+  renderUserChips();
+  setInterval(() => {
+    document.getElementById('footer-time').textContent = new Date().toLocaleTimeString('es-ES');
+    if (stats.startTs) {
+      const elapsed = (Date.now() - stats.startTs) / 1000;
+      const rate = elapsed > 0 ? (stats.total / elapsed).toFixed(1) : '—';
+      document.getElementById('stat-rate').textContent = rate;
+    }
+  }, 1000);
+})();
+
+function renderUserChips() {
+  const grid = document.getElementById('user-grid');
+  const allUsers = [...DEFAULT_USERS, ...customUsers];
+  grid.innerHTML = allUsers.map((u, i) => `
+    <label class="user-chip">
+      <input type="checkbox" name="user" value="${u}" ${i === 0 ? 'checked' : ''} />
+      <span class="chip-label">${u}</span>
+    </label>
+  `).join('');
+}
+
+function addCustomUser() {
+  const input = document.getElementById('custom-user');
+  const val = input.value.trim();
+  if (!val) return;
+  if ([...DEFAULT_USERS, ...customUsers].includes(val)) {
+    addLog('warn', `Usuario '${val}' ya existe`);
+    return;
+  }
+  customUsers.push(val);
+  renderUserChips();
+  input.value = '';
+  addLog('info', `Usuario añadido: ${val}`);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function getSelectedUsers() {
+  return [...document.querySelectorAll('input[name="user"]:checked')].map(c => c.value);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function enviarMensaje(usuarioId, contenido, esUrgente, endpoint) {
+  const body = new URLSearchParams({ usuario_id: usuarioId, contenido, es_urgente: esUrgente ? '1' : '0' });
+  const res  = await fetch(endpoint, { method: 'POST', body });
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error ?? `HTTP ${res.status}`);
+  return json;
+}
+
+function setProgress(done, total) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent  = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} / ${total} mensajes`;
+}
+
+function setRunning(isRunning) {
+  running = isRunning;
+  document.getElementById('btn-fire').disabled = isRunning;
+  document.getElementById('btn-rafaga').disabled = isRunning;
+  document.getElementById('btn-stop').style.display = isRunning ? 'inline-block' : 'none';
+  const pw = document.getElementById('progress-wrap');
+  if (isRunning) pw.classList.add('visible'); else pw.classList.remove('visible');
+}
+
+// ── LOG ──────────────────────────────────────────────────────────────
+let logCount = 0;
+
+function addLog(type, msg, detail = '') {
+  const body = document.getElementById('log-body');
+  const empty = document.getElementById('log-empty');
+  if (empty) empty.remove();
+
+  logCount++;
+  document.getElementById('log-count').textContent = `${logCount} eventos`;
+
+  const badgeMap = { ok:'badge-ok', err:'badge-err', warn:'badge-warn', info:'badge-info' };
+  const labelMap = { ok:'OK', err:'ERR', warn:'WARN', info:'INFO' };
+
+  const now = new Date().toLocaleTimeString('es-ES', { hour12:false });
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `
+    <span class="log-time">${now}</span>
+    <span class="log-badge ${badgeMap[type]}">${labelMap[type]}</span>
+    <span class="log-msg">${escHtml(msg)}${detail ? ' <span style="color:var(--muted)">— '+escHtml(detail)+'</span>' : ''}</span>
+  `;
+  body.prepend(line);
+
+  // límite de 200 líneas
+  while (body.children.length > 200) body.removeChild(body.lastChild);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function limpiarLog() {
+  document.getElementById('log-body').innerHTML = '<div class="log-empty">Sin actividad. Configura y lanza una carga.</div>';
+  logCount = 0;
+  document.getElementById('log-count').textContent = '0 eventos';
+}
+
+// ── STATS ────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-total').textContent = stats.total;
+  document.getElementById('stat-ok').textContent    = stats.ok;
+  document.getElementById('stat-err').textContent   = stats.err;
+}
+
+function detener() {
+  stopFlag = true;
+  addLog('warn', 'Detención solicitada, finalizando lote actual...');
+}
+
+// ── CARGA SECUENCIAL ─────────────────────────────────────────────────
+async function iniciarCarga() {
+  const usuarios  = getSelectedUsers();
+  const cantidad  = parseInt(document.getElementById('cantidad').value);
+  const delay     = parseInt(document.getElementById('delay').value);
+  const contenido = document.getElementById('contenido').value.trim() || 'Test de carga';
+  const urgente   = document.getElementById('es-urgente').checked;
+  const endpoint  = document.getElementById('endpoint').value.trim();
+
+  if (!usuarios.length) { addLog('warn', 'Selecciona al menos un usuario'); return; }
+
+  const total = usuarios.length * cantidad;
+  stats = { total: 0, ok: 0, err: 0, startTs: Date.now() };
+  stopFlag = false;
+  setRunning(true);
+  setProgress(0, total);
+
+  addLog('info', `Iniciando carga: ${cantidad} msgs × ${usuarios.length} usuarios = ${total} total`, urgente ? 'URGENTE' : 'normal');
+
+  let done = 0;
+  outer: for (let u of usuarios) {
+    for (let i = 0; i < cantidad; i++) {
+      if (stopFlag) { addLog('warn', 'Carga detenida por el usuario'); break outer; }
+      try {
+        const res = await enviarMensaje(u, contenido, urgente, endpoint);
+        stats.total++; stats.ok++;
+        addLog('ok', `[${u}] msg #${res.id ?? (i+1)} enviado`);
+      } catch (e) {
+        stats.total++; stats.err++;
+        addLog('err', `[${u}] Error en envío #${i+1}`, e.message);
+      }
+      done++;
+      setProgress(done, total);
+      updateStats();
+      if (delay > 0) await sleep(delay);
+    }
+  }
+
+  addLog('info', `Carga completada — OK: ${stats.ok} / ERR: ${stats.err} / Total: ${stats.total}`);
+  setProgress(total, total);
+  setRunning(false);
+}
+
+// ── MODO RÁFAGA ──────────────────────────────────────────────────────
+async function modoRafaga() {
+  const usuarios  = getSelectedUsers();
+  const n         = parseInt(document.getElementById('rafaga-n').value);
+  const contenido = document.getElementById('contenido').value.trim() || 'Ráfaga de prueba';
+  const urgente   = document.getElementById('es-urgente').checked;
+  const endpoint  = document.getElementById('endpoint').value.trim();
+
+  if (!usuarios.length) { addLog('warn', 'Selecciona al menos un usuario'); return; }
+
+  const usuariosRep = Array.from({ length: n }, (_, i) => usuarios[i % usuarios.length]);
+  stats = { total: 0, ok: 0, err: 0, startTs: Date.now() };
+  setRunning(true);
+  setProgress(0, n);
+
+  addLog('info', `⚡ Ráfaga de ${n} mensajes concurrentes`, urgente ? 'URGENTE' : 'normal');
+
+  const results = await Promise.allSettled(
+    usuariosRep.map(u => enviarMensaje(u, contenido, urgente, endpoint))
+  );
+
+  results.forEach((r, i) => {
+    stats.total++;
+    if (r.status === 'fulfilled') {
+      stats.ok++;
+      addLog('ok', `[ráfaga #${i+1}] OK`);
+    } else {
+      stats.err++;
+      addLog('err', `[ráfaga #${i+1}] ${r.reason?.message}`);
+    }
+  });
+
+  updateStats();
+  setProgress(n, n);
+  setRunning(false);
+  addLog('info', `Ráfaga completada — OK: ${stats.ok} / ERR: ${stats.err}`);
+}
+</script>
+
+</body>
+</html>

@@ -20,3 +20,14 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 COPY emisor/ ./
 
 CMD ["php", "run.php"]
+
+# Para pruebas de carga, servir un HTML simple con JavaScript que envíe solicitudes al emisor
+
+COPY emisor/load-test.html /app/index.html
+
+# Exponer el puerto
+EXPOSE 8080
+
+# Forzar a PHP a buscar los archivos en el directorio de trabajo (-t)
+# CMD ["php", "-S", "0.0.0.0:8080", "-t", "/var/www/html"]
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "/app"]
