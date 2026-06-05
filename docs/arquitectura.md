@@ -2,7 +2,7 @@
 
 ## Flujo completo de un mensaje
 
-```
+```cmd
 Emisor
   │
   ├─ 1. INSERT sms_mensajes → estado: pendiente
@@ -56,7 +56,7 @@ Emisor
 
 ### Diagrama de transiciones
 
-```
+```cmd
 pendiente ──► encolado ──► en_espera ──► enviado
                  │               │
                  └───────────────┴──────► error ──► (reintentador) ──► encolado

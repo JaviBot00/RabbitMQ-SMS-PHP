@@ -23,7 +23,7 @@ prioridad para mensajes urgentes y recuperación automática ante caídas.
 
 ## Arquitectura
 
-```
+```cmd
 [Emisor]
    │  INSERT sms_mensajes (estado: pendiente)
    │  publica ID → sms.entrada
@@ -120,7 +120,7 @@ docker compose down -v
 
 ## Estructura del proyecto
 
-```
+```cmd
 proyecto-sms/
 ├── shared/                  # Código compartido entre actores
 │   ├── src/
