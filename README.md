@@ -1,4 +1,4 @@
-# rabbitmq-sms
+# RabbitMQ-SMS
 
 Sistema de envío de SMS por colas con RabbitMQ, MySQL y PHP 8.3.
 
